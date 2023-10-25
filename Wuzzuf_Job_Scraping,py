@@ -1,0 +1,98 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import numpy as np
+import requests
+from bs4 import BeautifulSoup
+import csv
+import time as t
+driver = webdriver.Chrome()
+
+t.sleep(4)
+
+
+with open("JOBS.csv","w",newline="",encoding="utf-8") as file:
+    writer = csv.writer(file)
+    writer.writerow(["job_name","job_type","company_name","job_location","job_date","num_of_people","job_details_1","job_details_2","job_details_3","job_details_4","job_details_5","skills_and_tools","job_description","job_requirements"])
+
+
+
+    job = "data"
+    page = 0
+    running = True
+    while running:
+        response = requests.get(f'https://wuzzuf.net/search/jobs/?a=data%20spbg%7Cspbg&q={job}&start={page}')
+        soup = BeautifulSoup(response.text, 'html.parser')
+        link = soup.find_all('h2', attrs={"class":"css-m604qf"})
+        div = soup.find_all("div",attrs={"class":"css-d7j1kk"})
+       
+        if len(link) <= 0:
+                running = False
+                break
+
+        for i,d in zip(link,div):
+            try:
+                link_url1 = i.find("a",attrs={"class":"css-o171kl"}) 
+            except:
+                break
+            link_url2= link_url1.attrs["href"]
+            print(link_url2)
+            
+            driver.get(link_url2)
+            
+            job_name = driver.find_element(By.CLASS_NAME,"css-f9uh36").text.strip()
+            
+            job_type = driver.find_element(By.CLASS_NAME,"css-11rcwxl").text.replace(' ','_').split()
+
+            company_name =d.find("a",attrs={"class":"css-17s97q8"}).get_text().replace('-','').strip()
+            job_location =d.find("span",attrs={"class":"css-5wys0k"}).get_text().replace(',','').strip()
+           
+            
+            job_date =  driver.find_element(By.CLASS_NAME,"css-182mrdn").text
+           
+            try:
+                num_of_people = driver.find_element(By.CLASS_NAME , 'css-u1gwks').text
+            except:
+                num_of_people = '0'
+            
+            job_details_1 = driver.find_element(By.CLASS_NAME,'css-3kx5e2').text.replace(' ','_').split()[1:3]
+            
+            job_details_2 = driver.find_element(By.CLASS_NAME,'css-3kx5e2').text.replace(' ','_').split()[3:5]
+            
+            job_details_3 = driver.find_element(By.CLASS_NAME,'css-3kx5e2').text.replace(' ','_').split()[5:7]
+           
+            job_details_4 = driver.find_element(By.CLASS_NAME,'css-3kx5e2').text.replace(' ','_').split()[7:9]
+            
+            job_details_5 =driver.find_element(By.CLASS_NAME,'css-3kx5e2').text.replace(' ','_').split()[9:11]
+            
+            
+            skills_and_tools = driver.find_element(By.CLASS_NAME , 'css-s2o0yh').text.replace(' ','_').split()[1:]
+            
+            try:
+                job_description = []
+                y = driver.find_element(By.CLASS_NAME , 'css-1uobp1k').text.replace(' ','_').split()
+                for i in y:
+                    ro =i.replace('_',' ').strip()
+                    if ro =="":
+                        continue
+                    else:
+                        job_description.append(ro)
+            except:
+                job_description = "none"
+            
+            try:
+                job_requirements = []
+                y1 = driver.find_element(By.CLASS_NAME , 'css-1t5f0fr').text.replace(' ','_').split()
+                for i in y1:
+                    ro1 =i.replace('_',' ').strip()
+                    if ro1 =="":
+                        continue
+                    else:
+                        job_requirements.append(ro1)
+            except:
+                job_requirements = "none"
+
+            row = [job_name,job_type,company_name,job_location,job_date,num_of_people,job_details_1,job_details_2,job_details_3,job_details_4,job_details_5,skills_and_tools,job_description,job_requirements]
+            writer.writerow(row)
+            print(row)
+        page+=1
+driver.quit()
